@@ -1,15 +1,29 @@
-FROM golang:latest
+FROM golang:latest as build
 
-WORKDIR $GOPATH/src/k8s-demo
+WORKDIR /go/src/demo
 
 COPY . .
 
 ENV GOPROXY https://goproxy.io,direct
 
-ENV GIN_MODE release
-
 RUN go get
 
 RUN go build
 
-ENTRYPOINT ["./k8s-demo"]
+FROM ubuntu:20.04
+
+WORKDIR /opt/demo
+
+COPY --from=build /usr/local/go/lib/time/zoneinfo.zip /opt/demo/zoneinfo.zip
+
+COPY --from=build /go/src/demo/demo  /opt/demo/server
+
+RUN apt update
+
+RUN apt install -y --no-install-recommends ca-certificates curl
+
+ENV GIN_MODE release
+
+ENV ZONEINFO /opt/demo/zoneinfo.zip
+
+ENTRYPOINT ["./server"]

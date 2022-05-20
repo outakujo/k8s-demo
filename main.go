@@ -9,7 +9,7 @@ func main() {
 	en := gin.Default()
 	en.Use(gin.Recovery())
 	en.GET("/", func(c *gin.Context) {
-		c.JSON(http.StatusOK, "hello")
+		c.JSON(http.StatusOK, "k8s-demo hello")
 	})
-	_ = en.Run()
+	_ = en.Run(":80")
 }

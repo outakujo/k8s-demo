@@ -1,4 +1,4 @@
-module k8s-demo
+module demo
 
 go 1.18
 
