@@ -27,7 +27,7 @@ spec:
           image: k8s-demo
           imagePullPolicy: IfNotPresent
           ports:
-            - containerPort: 8080
+            - containerPort: 80
 
 ---
 
@@ -42,9 +42,9 @@ spec:
   #  type: LoadBalancer
   #  type: NodePort
   ports:
-    - port: 8082
+    - port: 80
       protocol: TCP
-      targetPort: 8080
+  #      targetPort: 80
   selector:
     app: k8s-demo
 
@@ -67,4 +67,4 @@ spec:
               service:
                 name: k8s-demo
                 port:
-                  number: 8082
+                  number: 80
