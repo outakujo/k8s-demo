@@ -18,7 +18,7 @@ COPY --from=build /usr/local/go/lib/time/zoneinfo.zip /opt/demo/zoneinfo.zip
 
 COPY --from=build /go/src/demo/demo  /opt/demo/server
 
-RUN apt update
+RUN apt update -y
 
 RUN apt install -y --no-install-recommends ca-certificates curl
 

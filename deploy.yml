@@ -22,6 +22,7 @@ spec:
       labels:
         app: k8s-demo
     spec:
+      #      serviceAccount: k8s-demo
       containers:
         - name: k8s-demo
           image: k8s-demo
@@ -45,8 +46,61 @@ spec:
     - port: 80
       protocol: TCP
   #      targetPort: 80
+  #      nodePort: 30000
   selector:
     app: k8s-demo
+
+---
+
+apiVersion: v1
+kind: Service
+metadata:
+  name: nginx-demo
+  namespace: k8s-demo
+spec:
+  selector:
+    app: nginx-demo
+  ports:
+    - name: http
+      port: 8001
+      targetPort: 80
+      nodePort: 30000
+  type: NodePort
+
+---
+
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: nginx-demo
+  namespace: k8s-demo
+spec:
+  serviceName: nginx-demo
+  replicas: 1
+  selector:
+    matchLabels:
+      app: nginx-demo
+  template:
+    metadata:
+      labels:
+        app: nginx-demo
+    spec:
+      containers:
+        - name: nginx-demo
+          image: nginx
+          ports:
+            - containerPort: 80
+          volumeMounts:
+            - name: www
+              mountPath: /usr/share/nginx/html
+  volumeClaimTemplates:
+    - metadata:
+        name: www
+      spec:
+        accessModes: [ "ReadWriteOnce" ]
+        resources:
+          requests:
+            storage: 1Gi
 
 ---
 
