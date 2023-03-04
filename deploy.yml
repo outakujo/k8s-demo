@@ -1,116 +1,170 @@
 apiVersion: v1
 kind: Namespace
 metadata:
-  name: k8s-demo
-
----
-
-apiVersion: apps/v1
-kind: Deployment
-metadata:
-  name: k8s-demo
-  namespace: k8s-demo
-  labels:
-    app: k8s-demo
-spec:
-  replicas: 2
-  selector:
-    matchLabels:
-      app: k8s-demo
-  template:
-    metadata:
-      labels:
-        app: k8s-demo
-    spec:
-      #      serviceAccount: k8s-demo
-      containers:
-        - name: k8s-demo
-          image: k8s-demo
-          imagePullPolicy: IfNotPresent
-          ports:
-            - containerPort: 80
+  name: myweb
 
 ---
 
 apiVersion: v1
 kind: Service
 metadata:
-  name: k8s-demo
-  namespace: k8s-demo
+  name: mysql
+  namespace: myweb
   labels:
-    app: k8s-demo
+    app: mysql
 spec:
-  #  type: LoadBalancer
-  #  type: NodePort
   ports:
-    - port: 80
-      protocol: TCP
-  #      targetPort: 80
-  #      nodePort: 30000
+    - port: 3306
+      targetPort: 3306
+  clusterIP: None
   selector:
-    app: k8s-demo
-
----
-
-apiVersion: v1
-kind: Service
-metadata:
-  name: nginx-demo
-  namespace: k8s-demo
-spec:
-  selector:
-    app: nginx-demo
-  ports:
-    - name: http
-      port: 8001
-      targetPort: 80
-      nodePort: 30000
-  type: NodePort
+    app: mysql
 
 ---
 
 apiVersion: apps/v1
 kind: StatefulSet
 metadata:
-  name: nginx-demo
-  namespace: k8s-demo
+  name: mysql
+  namespace: myweb
 spec:
-  serviceName: nginx-demo
+  serviceName: mysql
   replicas: 1
   selector:
     matchLabels:
-      app: nginx-demo
+      app: mysql
   template:
     metadata:
       labels:
-        app: nginx-demo
+        app: mysql
     spec:
       containers:
-        - name: nginx-demo
-          image: nginx
+        - name: mysql
+          image: mysql
           ports:
-            - containerPort: 80
+            - containerPort: 3306
+              name: mysql
+          env:
+            - name: MYSQL_ROOT_PASSWORD
+              value: "123456"
+            - name: MYSQL_DATABASE
+              value: myweb
           volumeMounts:
-            - name: www
-              mountPath: /usr/share/nginx/html
+            - name: mysql-data
+              mountPath: /var/lib/mysql
   volumeClaimTemplates:
     - metadata:
-        name: www
+        name: mysql-data
       spec:
         accessModes: [ "ReadWriteOnce" ]
         resources:
           requests:
-            storage: 1Gi
+            storage: 10Gi
+
+---
+
+apiVersion: v1
+kind: Service
+metadata:
+  name: redis
+  namespace: myweb
+  labels:
+    app: redis
+spec:
+  ports:
+    - port: 6379
+      targetPort: 6379
+  clusterIP: None
+  selector:
+    app: redis
+
+---
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: redis
+  namespace: myweb
+  labels:
+    app: redis
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: redis
+  template:
+    metadata:
+      labels:
+        app: redis
+    spec:
+      containers:
+        - name: redis
+          image: redis
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 6379
+
+---
+
+apiVersion: v1
+kind: Service
+metadata:
+  name: myweb
+  namespace: myweb
+  labels:
+    app: myweb
+spec:
+  # type: NodePort
+  ports:
+    - port: 80
+      targetPort: 8080
+  #     nodePort: 30000
+  selector:
+    app: myweb
+
+---
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: myweb
+  namespace: myweb
+  labels:
+    app: myweb
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: myweb
+  template:
+    metadata:
+      labels:
+        app: myweb
+    spec:
+      #      serviceAccount: k8s-demo
+      containers:
+        - name: myweb
+          image: myweb
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 8080
+          env:
+            - name: GIN_MODE
+              value: release
+          args:
+            - -redisAddr=redis
+            - -mysqlAddr=mysql
+            - -db-pass=123456
 
 ---
 
 apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
-  name: k8s-demo
+  name: myweb
   annotations:
     nginx.ingress.kubernetes.io/rewrite-target: /
-  namespace: k8s-demo
+  namespace: myweb
 spec:
   rules:
     - http:
@@ -119,6 +173,6 @@ spec:
             pathType: Prefix
             backend:
               service:
-                name: k8s-demo
+                name: myweb
                 port:
                   number: 80
