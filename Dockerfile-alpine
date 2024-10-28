@@ -1,0 +1,29 @@
+FROM golang as build
+
+WORKDIR /go/src/demo
+
+COPY . .
+
+ENV GOPROXY https://goproxy.cn,direct
+
+RUN go mod tidy
+
+RUN CGO_ENABLED=0 go build -ldflags="-s -w" -o demo
+
+FROM alpine
+
+RUN sed -i 's/dl-cdn.alpinelinux.org/mirrors.ustc.edu.cn/g' /etc/apk/repositories
+
+WORKDIR /opt/demo
+
+COPY --from=build /usr/local/go/lib/time/zoneinfo.zip /opt/demo/zoneinfo.zip
+
+COPY --from=build /go/src/demo/demo  /opt/demo/demo
+
+RUN apk add --no-cache ca-certificates curl
+
+ENV GIN_MODE release
+
+ENV ZONEINFO /opt/demo/zoneinfo.zip
+
+ENTRYPOINT ["./demo"]
